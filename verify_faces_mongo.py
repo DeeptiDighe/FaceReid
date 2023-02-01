@@ -2,10 +2,10 @@ import os
 from deepface import DeepFace
 import cv2
 import numpy as np
-from Emotyx.Code.FaceReidentification.Complete.FeatureExtractor.feature_extractor import FeatureExtractor
+from FeatureExtractor.feature_extractor import FeatureExtractor
 import pandas as pd
 from scipy import spatial
-from Emotyx.Code.FaceReidentification.Complete.identify_faces_mongo import connect_mongodb
+from identify_faces_mongo import connect_mongodb
 import pickle
 from deepface.commons import distance as dst
 from retinaface import RetinaFace
