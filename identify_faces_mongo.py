@@ -2,8 +2,8 @@ from time import time
 import cv2
 from retinaface import RetinaFace
 import numpy as np
-from Emotyx.TrainedModels.People_tracking.counting_people_yolov7 import Tracker
-from Emotyx.Code.FaceReidentification.Complete.FeatureExtractor.feature_extractor import FeatureExtractor
+from People_tracking.counting_people_yolov7 import Tracker
+from FeatureExtractor.feature_extractor import FeatureExtractor
 from imquality import brisque
 from deepface import DeepFace
 from pymongo import MongoClient
@@ -26,14 +26,6 @@ def connect_mongodb(connectionstring):
 class RegisterFaces:
 
     def __init__(self, gpu, personmodel, mongoclient):
-        '''
-        vc = cv2.VideoCapture(r'C:\Projects\Emotyx\Code\FaceReidentification\Complete\videos\v1.mp4')
-        fps = vc.get(cv2.CAP_PROP_FPS)
-        width = int(vc.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        writer = cv2.VideoWriter(r'C:\Projects\Emotyx\Code\FaceReidentification\Complete\videos\output1.avi', fourcc, fps, (640,480))
-        '''
         if gpu:
             self.fe = FeatureExtractor('osnet_ain_x1_0', model_path=personmodel, device='gpu')
         else:
@@ -100,7 +92,6 @@ class RegisterFaces:
             registeredPeople = self.get_objectIds(frame, tracker)    #TODO: only process people which are coming towards camera        
             #TODO: instead of passing whole frame for face detection, pass half frame for faster detection as well as better faces
             #TODO: run face detection and person tracking parallely
-            print(f'here!!!!!!!!!!!!!!!!!!!!!!! len: {len(registeredPeople)}')
             to_be_inserted = list()
             embeddings = list()
             for personId, personbb in registeredPeople.items():
@@ -114,14 +105,10 @@ class RegisterFaces:
                     aligned_faces, coords, angle = self.retinaface_detect(frame[max(0,personbb[1]):personbb[3], max(0,personbb[0]):personbb[2]])
                     if len(aligned_faces)==0:
                         continue
-                    print("__________________________here1")
                 except:
                     continue
                 if aligned_faces[0].shape[0] < 40 or aligned_faces[0].shape[1] < 30:
                     continue
-                #matplotlib.image.imsave(os.path.join(temp,'tempcap.jpg'), aligned_faces[0])
-                #angle = pose.estimate_pose(aligned_faces[0])
-                print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& angle: ',angle[0])
                 if angle[0]=='Frontal':
                     score = brisque.score(aligned_faces[0])
                     if score < 0 or score > 50:  #lesser the better
@@ -141,23 +128,22 @@ class RegisterFaces:
                     cv2.waitKey(1)
                     to_be_inserted.append(row)
                     embeddings.append(row_emb)
-                    print('************************** GONNA BE INSTERTED!!!')
 
             if len(to_be_inserted) > 0:
                 try:
                     self.client.emotyx.person.insert_many(to_be_inserted)
                     self.client.emotyx.embeddings.insert_many(embeddings)
-                    print(f'**********************Inserted {str(personId)}_{str(i)} in the database')
+                    print(f'**********************Inserted {str(camid) + '_' + str(personId) + '_' + str(i)} in the database')
                 except:
                     self.client = self.connect_mongodb(self.mongourl)
                     self.client.emotyx.person.insert_many(to_be_inserted)
                     self.client.emotyx.embeddings.insert_many(embeddings)
-                    print(f'**********************Inserted {str(personId)}_{str(i)} in the database')
+                    print(f'**********************Inserted {str(camid) + '_' + str(personId) + '_' + str(i)} in the database')
             cv2.imshow('image', frame)
             k = cv2.waitKey(1)
         
         except Exception as e:
-            return '())()()()()()()()()()()()()())()()()()()()()))())()()()()))()()))())))())()())())()()()()()()()()()()'+str(e)
+            return str(e)
         return 'ALL OK!'
 
 def main():
