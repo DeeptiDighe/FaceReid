@@ -5,7 +5,7 @@ import pymongo
 
 #app = Flask(__name__)
 
-celery_app = Celery('verifyfacetask', broker='amqp://myuser:password@localhost:5672/myvhost',
+celery_app = Celery('registerfacetask', broker='amqp://myuser:password@localhost:5672/myvhost',
                     backend='mongodb://localhost:27017/celerydb')
 
 #@app.route('/simple_start_task/<frame>')
