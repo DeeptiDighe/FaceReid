@@ -28,6 +28,9 @@ class FaceReid:
         self.ln = self.net.getLayerNames()
         self.ln = [self.ln[i - 1] for i in self.net.getUnconnectedOutLayers()]
 
+        self.actions = ('emotion', 'age', 'gender', 'race')
+        self.eth_models = self.build_eth_models()
+        
         if gpu:
             self.fe = FeatureExtractor('osnet_ain_x1_0', model_path=personmodel, device='gpu')
         else:
@@ -42,6 +45,21 @@ class FaceReid:
         self.df = self.df.set_index('_id')
         self.embeddings = self.embeddings.set_index('_id')
 
+    def build_eth_models(self):
+        models = dict()
+        if 'emotion' in self.actions:
+            models['emotion'] = DeepFace.build_model('Emotion')
+
+        if 'age' in self.actions:
+            models['age'] = DeepFace.build_model('Age')
+
+        if 'gender' in self.actions:
+            models['gender'] = DeepFace.build_model('Gender')
+
+        if 'race' in self.actions:
+            models['race'] = DeepFace.build_model('Race')
+        return models
+        
     def run_yolo_on_frame(self, frame):
         blob = cv2.dnn.blobFromImage(frame, 1/255, (416, 416), [0,0,0], 1, crop=False)
         self.net.setInput(blob)
@@ -222,7 +240,7 @@ class FaceReid:
             matches = self.verify_person(frame[rect[1]:rect[3], rect[0]:rect[2]])
             try:
                 #face = DeepFace.detectFaceImage(frame[rect[1]:rect[3], rect[0]:rect[2]], detector_backend='mtcnn', enforce_detection=True, target_size=(75,100))
-                aligned_faces, coords, angle = self.retinaface_detect(frame[rect[1]:rect[3], rect[0]:rect[2]], low=25, high=85)
+                aligned_faces, coords, angle, img_region = self.retinaface_detect(frame[rect[1]:rect[3], rect[0]:rect[2]], low=25, high=85)
                 if len(aligned_faces)==0:
                     continue
             except:
@@ -257,12 +275,14 @@ class FaceReid:
                 if matched is not None:
                     #res = f'The input person matches with person id {matched} in the database!'
                     #print(res)
-                    cv2.putText(oframe, f'id:{matched}', (rect[0],rect[3]),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
+                    eth_results = DeepFace.analyze_face(frame[rect[1]:rect[3], rect[0]:rect[2]], actions=('emotion','race'), models = self.eth_models,enforce_detection = True, detector_backend = 'retinaface')
+                    cv2.putText(oframe, f'id:{matched},{eth_results["dominant_race"]}', (rect[0],rect[1]),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
                     #ln = len(os.listdir(path))
                     #cv2.imwrite(path+'\\'+str(ln)+'_'+str(matched)+'_matched'+'.jpg', face)
                     #cv2.imwrite(path+'\\'+str(ln)+'_'+str(matched)+'_original'+'.jpg', self.df.person.loc[matched]['face_img'])
                 #results.append(res)
                 #cv2.putText(oframe, f'id:{matched}', (rect[0],rect[3]),cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
+        
         return oframe
 
     def convert_frame_to_bino(frame):
