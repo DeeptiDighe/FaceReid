@@ -469,7 +469,7 @@ def analyze(img_path, actions = ('emotion', 'age', 'gender', 'race') , models = 
 
 		return resp_obj
 
-def analyze_face(img, actions = ('emotion', 'age', 'gender', 'race') , models = None, enforce_detection = True, detector_backend = 'opencv', prog_bar = True):
+def analyze_face(oimg, actions = ('emotion', 'age', 'gender', 'race') , models = None, enforce_detection = True, detector_backend = 'opencv', prog_bar = True):
 
 	"""
 	This function analyzes facial attributes including age, gender, emotion and race
@@ -536,13 +536,13 @@ def analyze_face(img, actions = ('emotion', 'age', 'gender', 'race') , models = 
 	is_region_set = False
 
 	#facial attribute analysis
-	for index in pbar:
-		action = actions[index]
-		pbar.set_description("Action: %s" % (action))
+	for action in actions:
+		#action = actions[index]
+		#pbar.set_description("Action: %s" % (action))
 
 		if action == 'emotion':
 			emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
-			img, region = functions.resize_face(img, target_size = (48, 48), grayscale = True, return_region = True)
+			img, region = functions.preprocess_face_image(oimg, target_size = (48, 48), grayscale = True, return_region = True, enforce_detection=enforce_detection, detector_backend='retinaface')
 
 			emotion_predictions = models['emotion'].predict(img)[0,:]
 
@@ -559,7 +559,7 @@ def analyze_face(img, actions = ('emotion', 'age', 'gender', 'race') , models = 
 
 		elif action == 'age':
 			if img_224 is None:
-				img_224, region = functions.preprocess_face(img, target_size = (224, 224), grayscale = False, return_region = True)
+				img_224, region = functions.preprocess_face_image(oimg, target_size = (224, 224), grayscale = True, return_region = True, enforce_detection=enforce_detection, detector_backend='retinaface')
 
 			age_predictions = models['age'].predict(img_224)[0,:]
 			apparent_age = Age.findApparentAge(age_predictions)
@@ -568,7 +568,7 @@ def analyze_face(img, actions = ('emotion', 'age', 'gender', 'race') , models = 
 
 		elif action == 'gender':
 			if img_224 is None:
-				img_224, region = functions.preprocess_face(img, target_size = (224, 224), grayscale = False,return_region = True)
+				img_224, region = functions.preprocess_face(oimg, target_size = (224, 224), grayscale = False,return_region = True, enforce_detection=enforce_detection, detector_backend='retinaface')
 
 			gender_prediction = models['gender'].predict(img_224)[0,:]
 
@@ -581,7 +581,7 @@ def analyze_face(img, actions = ('emotion', 'age', 'gender', 'race') , models = 
 
 		elif action == 'race':
 			if img_224 is None:
-				img_224, region = functions.preprocess_face(img, target_size = (224, 224), grayscale = False, return_region = True) #just emotion model expects grayscale images
+				img_224, region = functions.preprocess_face(oimg, target_size = (224, 224), grayscale = False, return_region = True, enforce_detection=enforce_detection, detector_backend='retinaface') #just emotion model expects grayscale images
 			race_predictions = models['race'].predict(img_224)[0,:]
 			race_labels = ['asian', 'indian', 'black', 'white', 'middle eastern', 'latino hispanic']
 
